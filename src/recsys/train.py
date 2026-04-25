@@ -36,6 +36,7 @@ class Config:
     seed: int = 42
     rank_eval_users: int = 5000
     rank_eval_k: int = 10
+    pos_threshold: float = 4.0
 
 
 def pick_device() -> torch.device:
@@ -141,7 +142,8 @@ def ranking_eval(
     """Sample users, score every item, exclude train-seen, score Recall@K + NDCG@K."""
     log.info("ranking eval: building seen/truth maps")
     train_df = pd.read_parquet(PROCESSED / "train.parquet", columns=["user_idx", "item_idx"])
-    test_df = pd.read_parquet(PROCESSED / "test.parquet", columns=["user_idx", "item_idx"])
+    test_df = pd.read_parquet(PROCESSED / "test.parquet", columns=["user_idx", "item_idx", "rating"])
+    test_df = test_df[test_df["rating"] >= cfg.pos_threshold]
 
     seen: dict[int, set[int]] = defaultdict(set)
     for u, i in zip(train_df["user_idx"].to_numpy(), train_df["item_idx"].to_numpy(), strict=True):

@@ -41,6 +41,7 @@ dev = [
 [project.scripts]
 recsys-prepare = "recsys.data.prepare:main"
 recsys-train = "recsys.train:main"
+recsys-train-tt = "recsys.train_tt:main"
 
 [build-system]
 requires = ["hatchling"]

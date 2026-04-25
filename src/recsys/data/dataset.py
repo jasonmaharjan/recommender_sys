@@ -54,3 +54,19 @@ def load_splits(
         RatingsDataset(processed_dir / "val.parquet"),
         RatingsDataset(processed_dir / "test.parquet"),
     )
+
+
+class PositivesDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
+    """(user, item) pairs where rating >= threshold (implicit-feedback positives)."""
+
+    def __init__(self, parquet_path: Path, threshold: float = 4.0) -> None:
+        df = pd.read_parquet(parquet_path, columns=["user_idx", "item_idx", "rating"])
+        df = df[df["rating"] >= threshold]
+        self.users = torch.from_numpy(df["user_idx"].to_numpy().copy()).long()
+        self.items = torch.from_numpy(df["item_idx"].to_numpy().copy()).long()
+
+    def __len__(self) -> int:
+        return self.users.shape[0]
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        return self.users[idx], self.items[idx]
