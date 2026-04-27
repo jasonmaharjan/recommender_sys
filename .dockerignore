@@ -1,0 +1,34 @@
+# VCS
+.git/
+.gitignore
+.github/
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Tests + dev tooling
+tests/
+notebooks/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.pre-commit-config.yaml
+
+# Large local files we don't ship in the image
+data/raw/
+*.log
+.env
+.env.local
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
