@@ -47,7 +47,7 @@ def pick_device() -> torch.device:
     return torch.device("cpu")
 
 
-def rmse(model: MatrixFactorization, loader: DataLoader, device: torch.device) -> float:
+def rmse(model: MatrixFactorization, loader: DataLoader[object], device: torch.device) -> float:
     model.eval()
     sq_err, n = 0.0, 0
     with torch.no_grad():
@@ -59,7 +59,7 @@ def rmse(model: MatrixFactorization, loader: DataLoader, device: torch.device) -
     return math.sqrt(sq_err / n)
 
 
-def train(cfg: Config) -> dict[str, float | list[float]]:
+def train(cfg: Config) -> dict[str, object]:
     torch.manual_seed(cfg.seed)
     device = pick_device()
     log.info("device=%s config=%s", device, cfg)
@@ -69,12 +69,15 @@ def train(cfg: Config) -> dict[str, float | list[float]]:
     log.info("datasets: train=%d val=%d test=%d", len(train_ds), len(val_ds), len(test_ds))
 
     train_loader = DataLoader(
-        train_ds, batch_size=cfg.batch_size, shuffle=True,
-        num_workers=cfg.num_workers, pin_memory=device.type == "cuda",
+        train_ds,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        pin_memory=device.type == "cuda",
     )
-    eval_kwargs = dict(batch_size=cfg.batch_size * 4, shuffle=False, num_workers=cfg.num_workers)
-    val_loader = DataLoader(val_ds, **eval_kwargs)
-    test_loader = DataLoader(test_ds, **eval_kwargs)
+    eval_bs = cfg.batch_size * 4
+    val_loader = DataLoader(val_ds, batch_size=eval_bs, shuffle=False, num_workers=cfg.num_workers)
+    test_loader = DataLoader(test_ds, batch_size=eval_bs, shuffle=False, num_workers=cfg.num_workers)
 
     model = MatrixFactorization(
         n_users=stats.n_users,
@@ -100,7 +103,7 @@ def train(cfg: Config) -> dict[str, float | list[float]]:
             pred = model(u, i)
             loss = torch.mean((pred - r) ** 2)
             opt.zero_grad()
-            loss.backward()
+            loss.backward()  # type: ignore[no-untyped-call]
             opt.step()
             sq_err += torch.sum((pred.detach() - r) ** 2).item()
             n += r.numel()
@@ -109,12 +112,18 @@ def train(cfg: Config) -> dict[str, float | list[float]]:
         history.append(val_rmse)
         log.info(
             "epoch=%d train_rmse=%.4f val_rmse=%.4f elapsed=%.1fs",
-            epoch, train_rmse, val_rmse, time.perf_counter() - t0,
+            epoch,
+            train_rmse,
+            val_rmse,
+            time.perf_counter() - t0,
         )
         if val_rmse < best_val:
             best_val = val_rmse
             best_epoch = epoch
-            torch.save({"state_dict": model.state_dict(), "config": asdict(cfg), "stats": asdict(stats)}, ckpt_path)
+            torch.save(
+                {"state_dict": model.state_dict(), "config": asdict(cfg), "stats": asdict(stats)},
+                ckpt_path,
+            )
 
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=True)
     model.load_state_dict(ckpt["state_dict"])
@@ -167,7 +176,12 @@ def ranking_eval(
     ndcg = ndcg_at_k(top_k, truth_lists)
     log.info(
         "recall@%d=%.4f ndcg@%d=%.4f (n=%d, %.1fs)",
-        cfg.rank_eval_k, rec, cfg.rank_eval_k, ndcg, sample_n, time.perf_counter() - t0,
+        cfg.rank_eval_k,
+        rec,
+        cfg.rank_eval_k,
+        ndcg,
+        sample_n,
+        time.perf_counter() - t0,
     )
     return {f"recall@{cfg.rank_eval_k}": rec, f"ndcg@{cfg.rank_eval_k}": ndcg, "rank_eval_n": sample_n}
 
@@ -179,9 +193,7 @@ def ranking_eval(
 @click.option("--embedding-dim", default=64, show_default=True)
 def main(epochs: int, batch_size: int, lr: float, embedding_dim: int) -> None:
     """Train the MF baseline (registered as ``recsys-train`` in pyproject)."""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     train(Config(epochs=epochs, batch_size=batch_size, lr=lr, embedding_dim=embedding_dim))
 
 

@@ -51,7 +51,7 @@ build-backend = "hatchling.build"
 packages = ["src/recsys"]
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 target-version = "py312"
 src = ["src", "tests", "scripts"]
 
@@ -65,15 +65,19 @@ select = [
     "N",        # pep8-naming
     "SIM",      # flake8-simplify
     "RUF",      # ruff-specific
-    "PL",       # pylint
     "TID",      # flake8-tidy-imports
     "PTH",      # flake8-use-pathlib
     "PD",       # pandas-vet
 ]
-ignore = ["PLR0913", "PLR2004"]
+ignore = [
+    "N812",  # `import torch.nn.functional as F` is the PyTorch convention
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["PLR2004", "S101"]
+"tests/**" = ["S101"]
+# These modules set os.environ before importing faiss/torch to avoid macOS OpenMP segfault.
+"src/recsys/train_tt.py" = ["E402"]
+"src/recsys/api/main.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -87,7 +91,7 @@ ignore_missing_imports = true
 files = ["src"]
 
 [[tool.mypy.overrides]]
-module = ["faiss.*", "prometheus_fastapi_instrumentator.*"]
+module = ["faiss.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

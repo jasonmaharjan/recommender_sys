@@ -39,5 +39,7 @@ class MatrixFactorization(nn.Module):
         u = self.user_emb(user_idx)
         i = self.item_emb(item_idx)
         dot = (u * i).sum(dim=-1)
-        logit = dot + self.user_bias(user_idx).squeeze(-1) + self.item_bias(item_idx).squeeze(-1) + self.global_bias
+        bu = self.user_bias(user_idx).squeeze(-1)
+        bi = self.item_bias(item_idx).squeeze(-1)
+        logit = dot + bu + bi + self.global_bias
         return self.rating_min + self.rating_range * torch.sigmoid(logit)

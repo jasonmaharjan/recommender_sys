@@ -39,9 +39,7 @@ def ndcg_at_k(top_k_items: np.ndarray, ground_truth: list[set[int]]) -> float:
     for ranked, truth in zip(top_k_items, ground_truth, strict=True):
         if not truth:
             continue
-        dcg = sum(
-            (1.0 / math.log2(rank + 2)) for rank, it in enumerate(ranked) if int(it) in truth
-        )
+        dcg = sum((1.0 / math.log2(rank + 2)) for rank, it in enumerate(ranked) if int(it) in truth)
         ideal_hits = min(len(truth), ranked.shape[0])
         idcg = sum(1.0 / math.log2(rank + 2) for rank in range(ideal_hits))
         scores.append(dcg / idcg if idcg > 0 else 0.0)

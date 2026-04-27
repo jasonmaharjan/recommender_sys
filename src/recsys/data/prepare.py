@@ -37,7 +37,7 @@ def download() -> None:
     RAW.mkdir(parents=True, exist_ok=True)
     if not ARCHIVE.exists():
         log.info("downloading %s", URL)
-        urllib.request.urlretrieve(URL, ARCHIVE)  # noqa: S310
+        urllib.request.urlretrieve(URL, ARCHIVE)
 
     log.info("extracting to %s", RAW)
     with zipfile.ZipFile(ARCHIVE) as zf:
@@ -118,7 +118,9 @@ def prepare() -> None:
     ratings, user_map, item_map = reindex(ratings)
     log.info(
         "after filtering: %d ratings, %d users, %d items",
-        len(ratings), len(user_map), len(item_map),
+        len(ratings),
+        len(user_map),
+        len(item_map),
     )
 
     train, val, test = temporal_split(ratings)
@@ -146,9 +148,7 @@ def prepare() -> None:
 @click.command()
 def main() -> None:
     """CLI entry point (registered as ``recsys-prepare`` in pyproject)."""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     prepare()
 
 

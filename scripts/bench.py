@@ -16,7 +16,7 @@ N_REQUESTS = 200
 
 def hit(user_id: int) -> float:
     t0 = time.perf_counter()
-    with urllib.request.urlopen(URL.format(user_id=user_id), timeout=30) as r:  # noqa: S310
+    with urllib.request.urlopen(URL.format(user_id=user_id), timeout=30) as r:
         r.read()
     return (time.perf_counter() - t0) * 1000
 
@@ -39,7 +39,7 @@ def main() -> int:
     random.seed(42)
     sample = random.sample(list(user_ids), N_REQUESTS)
 
-    print(f"warming up...")
+    print("warming up...")
     hit(sample[0])
 
     print(f"cache-miss pass ({N_REQUESTS} requests, distinct users)...")

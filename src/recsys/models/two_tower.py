@@ -21,7 +21,8 @@ class Tower(nn.Module):
         nn.init.normal_(self.emb.weight, std=0.01)
 
     def forward(self, ids: torch.Tensor) -> torch.Tensor:
-        return F.normalize(self.mlp(self.emb(ids)), p=2, dim=-1)
+        out: torch.Tensor = F.normalize(self.mlp(self.emb(ids)), p=2, dim=-1)
+        return out
 
 
 class TwoTower(nn.Module):
@@ -40,10 +41,13 @@ class TwoTower(nn.Module):
         self.item_tower = Tower(n_items, embedding_dim, hidden_dim, out_dim)
 
     def user_embedding(self, user_idx: torch.Tensor) -> torch.Tensor:
-        return self.user_tower(user_idx)
+        emb: torch.Tensor = self.user_tower(user_idx)
+        return emb
 
     def item_embedding(self, item_idx: torch.Tensor) -> torch.Tensor:
-        return self.item_tower(item_idx)
+        emb: torch.Tensor = self.item_tower(item_idx)
+        return emb
 
     def forward(self, user_idx: torch.Tensor, item_idx: torch.Tensor) -> torch.Tensor:
-        return (self.user_embedding(user_idx) * self.item_embedding(item_idx)).sum(dim=-1)
+        score: torch.Tensor = (self.user_embedding(user_idx) * self.item_embedding(item_idx)).sum(dim=-1)
+        return score

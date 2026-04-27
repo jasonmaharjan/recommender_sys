@@ -8,9 +8,7 @@ import pandas as pd
 from recsys.data.prepare import filter_sparse, reindex, temporal_split
 
 
-def _synth(
-    n_users: int = 20, n_items: int = 30, n_per_user: int = 10, seed: int = 0
-) -> pd.DataFrame:
+def _synth(n_users: int = 20, n_items: int = 30, n_per_user: int = 10, seed: int = 0) -> pd.DataFrame:
     """Build a small ratings DataFrame where every user has `n_per_user` distinct items."""
     assert n_per_user <= n_items, "need enough items to sample without replacement"
     rng = np.random.default_rng(seed)
@@ -90,8 +88,8 @@ class TestTemporalSplit:
         assert len(train) + len(val) + len(test) == total
 
     def test_empty_input_does_not_crash(self) -> None:
-        empty = pd.DataFrame(
-            {"user_id": [], "movie_id": [], "rating": [], "timestamp": []}
-        ).astype({"user_id": "int32", "movie_id": "int32", "rating": "float32", "timestamp": "int64"})
+        empty = pd.DataFrame({"user_id": [], "movie_id": [], "rating": [], "timestamp": []}).astype(
+            {"user_id": "int32", "movie_id": "int32", "rating": "float32", "timestamp": "int64"}
+        )
         train, val, test = temporal_split(empty)
         assert len(train) == len(val) == len(test) == 0

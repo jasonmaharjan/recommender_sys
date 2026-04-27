@@ -13,13 +13,12 @@ from dataclasses import asdict, dataclass
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import click
+import faiss
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-
-import faiss  # noqa: E402  must import after torch on macOS
 
 faiss.omp_set_num_threads(1)  # avoid OpenMP collision with torch on macOS
 
@@ -57,9 +56,7 @@ def pick_device() -> torch.device:
     return torch.device("cpu")
 
 
-def in_batch_softmax_loss(
-    user_emb: torch.Tensor, item_emb: torch.Tensor, temperature: float
-) -> torch.Tensor:
+def in_batch_softmax_loss(user_emb: torch.Tensor, item_emb: torch.Tensor, temperature: float) -> torch.Tensor:
     """Treat each in-batch positive as the only positive vs every other item as negative."""
     logits = user_emb @ item_emb.T / temperature
     targets = torch.arange(logits.shape[0], device=logits.device)
@@ -68,7 +65,8 @@ def in_batch_softmax_loss(
 
 def encode_all_items(model: TwoTower, n_items: int, device: torch.device, batch: int = 8192) -> np.ndarray:
     model.eval()
-    out = np.empty((n_items, model.item_tower.mlp[-1].out_features), dtype=np.float32)
+    out_dim = int(model.item_tower.mlp[-1].out_features)  # type: ignore[arg-type]
+    out = np.empty((n_items, out_dim), dtype=np.float32)
     with torch.no_grad():
         for start in range(0, n_items, batch):
             ids = torch.arange(start, min(start + batch, n_items), device=device)
@@ -121,7 +119,12 @@ def faiss_eval(
     ndcg = ndcg_at_k(top_k, truth_lists)
     log.info(
         "recall@%d=%.4f ndcg@%d=%.4f (n=%d, %.1fs)",
-        cfg.rank_eval_k, rec, cfg.rank_eval_k, ndcg, sample_n, time.perf_counter() - t0,
+        cfg.rank_eval_k,
+        rec,
+        cfg.rank_eval_k,
+        ndcg,
+        sample_n,
+        time.perf_counter() - t0,
     )
     return {f"recall@{cfg.rank_eval_k}": rec, f"ndcg@{cfg.rank_eval_k}": ndcg, "rank_eval_n": sample_n}, index
 
@@ -136,13 +139,20 @@ def train(cfg: Config) -> dict[str, object]:
     log.info("positives: train=%d (rating>=%.1f)", len(train_ds), cfg.pos_threshold)
 
     loader = DataLoader(
-        train_ds, batch_size=cfg.batch_size, shuffle=True,
-        num_workers=cfg.num_workers, pin_memory=device.type == "cuda", drop_last=True,
+        train_ds,
+        batch_size=cfg.batch_size,
+        shuffle=True,
+        num_workers=cfg.num_workers,
+        pin_memory=device.type == "cuda",
+        drop_last=True,
     )
 
     model = TwoTower(
-        n_users=stats.n_users, n_items=stats.n_items,
-        embedding_dim=cfg.embedding_dim, hidden_dim=cfg.hidden_dim, out_dim=cfg.out_dim,
+        n_users=stats.n_users,
+        n_items=stats.n_items,
+        embedding_dim=cfg.embedding_dim,
+        hidden_dim=cfg.hidden_dim,
+        out_dim=cfg.out_dim,
     ).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
@@ -160,7 +170,7 @@ def train(cfg: Config) -> dict[str, object]:
             item_emb = model.item_embedding(i)
             loss = in_batch_softmax_loss(user_emb, item_emb, cfg.temperature)
             opt.zero_grad()
-            loss.backward()
+            loss.backward()  # type: ignore[no-untyped-call]
             opt.step()
             running += loss.item()
             steps += 1
@@ -189,9 +199,7 @@ def train(cfg: Config) -> dict[str, object]:
 @click.option("--temperature", default=0.07, show_default=True)
 def main(epochs: int, batch_size: int, lr: float, temperature: float) -> None:
     """Train the two-tower model (registered as ``recsys-train-tt``)."""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     train(Config(epochs=epochs, batch_size=batch_size, lr=lr, temperature=temperature))
 
 
